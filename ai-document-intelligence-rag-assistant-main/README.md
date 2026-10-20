@@ -1,228 +1,164 @@
 # AI Document Intelligence & RAG Assistant
 
-A local Retrieval-Augmented Generation (RAG) system that lets you upload a PDF,
-ask natural-language questions about it, and receive grounded answers backed by
-exact page-number and source-file citations — all running on your machine with
-no mandatory API keys.
+An AI-powered document question-answering system that uses **Retrieval-Augmented Generation (RAG)** to retrieve relevant information from PDF documents and generate evidence-based answers with source citations.
 
----
+The project explores semantic search, document processing, vector similarity search, and grounded response generation to make document analysis more useful and reliable.
 
 ## Overview
 
-AI Document Intelligence is a self-contained RAG pipeline built from modular,
-independently-testable components. Upload any PDF document through the web
-interface, then ask questions. The system retrieves the most relevant passages
-using semantic search and generates an answer that is strictly grounded in those
-passages. If the document does not contain enough information to answer the
-question, the system says so instead of hallucinating.
+Searching lengthy documents manually can be time-consuming. This project provides a web-based interface where users can upload a PDF and ask questions in natural language.
 
----
+The system retrieves relevant document passages and uses them to generate answers. When the available content is insufficient, it is designed to avoid unsupported responses.
 
-## Key Features
+## Features
 
-- **PDF Upload** – drag-and-drop or file-picker upload via a clean browser UI
-- **Semantic Retrieval** – FAISS vector search over 384-dimensional sentence embeddings
-- **Grounded Generation** – answers reference only what is in the document
-- **Source & Page Citations** – every answer includes the originating page and filename
-- **Out-of-Document Refusal** – explicit "not enough information" response for irrelevant questions
-- **No Mandatory API Key** – deterministic extractive fallback works without any LLM subscription
-- **Optional LLM Upgrade** – plug in an OpenAI or Groq key for higher-quality prose answers
-- **Built-in Evaluation** – reproducible 5-question evaluation framework with four metrics
+- **PDF Question Answering:** Upload documents and ask questions in natural language.
+- **Semantic Search:** Retrieve relevant passages using vector embeddings.
+- **Retrieval-Augmented Generation:** Ground responses in retrieved document content.
+- **Source Citations:** Display source filenames and page references alongside answers.
+- **Insufficient-Context Handling:** Support responses when the documents do not contain enough information.
+- **Flexible Generation:** Support a fallback answer-generation path and optional LLM API integration.
+- **Evaluation:** Include an evaluation workflow for assessing retrieval and answer behavior.
 
----
+## How It Works
 
-## Architecture
+1. **Document ingestion:** Extract text and page information from uploaded PDF files.
+2. **Text chunking:** Split document text into smaller, overlapping passages.
+3. **Embedding generation:** Convert text passages into vector representations.
+4. **Vector indexing:** Store embeddings and associated metadata for similarity search.
+5. **Retrieval:** Find passages relevant to the user's question.
+6. **Answer generation:** Generate an answer using the retrieved context.
+7. **Citation display:** Present the response with relevant document references.
 
-```mermaid
-flowchart LR
-    A[User uploads PDF] --> B[PDF Text Extraction\nsrc/pdf_loader.py]
-    B --> C[Text Chunking\nsrc/chunker.py\nchunk_size=1000, overlap=200]
-    C --> D[Sentence Embeddings\nsrc/embedder.py\nall-MiniLM-L6-v2 · 384-dim]
-    D --> E[FAISS Vector Index\nsrc/vector_db.py\nIndexFlatL2]
-    E --> F[(vector_db/\nindex.faiss\nmetadata.pkl)]
-    G[User question] --> H[Query Embedding\nsame model]
-    H --> I[Semantic Retrieval\nsrc/retriever.py\ntop-k L2 search]
-    F --> I
-    I --> J[Answer Generation\nsrc/generator.py\nfallback or LLM API]
-    J --> K[Answer + Citations\npage · source]
-    K --> L[Web UI\nsrc/ui.py · port 8000]
-```
+## Technology Stack
 
----
+| Component              | Technology                      |
+| ---------------------- | ------------------------------- |
+| Language               | Python                          |
+| Document processing    | PyMuPDF                         |
+| Text chunking          | LangChain Text Splitters        |
+| Embeddings             | Sentence Transformers           |
+| Vector search          | FAISS                           |
+| Optional LLM providers | OpenAI API, Groq API            |
+| Interface and server   | Python HTTP server              |
+| Evaluation             | Python-based evaluation scripts |
 
-## How RAG Works
+## Getting Started
 
-1. **Ingest** – the PDF is split into overlapping 1,000-character chunks. Each chunk keeps its page number and source filename.
-2. **Embed** – every chunk is encoded by `all-MiniLM-L6-v2` into a 384-dimensional vector and stored in a FAISS index.
-3. **Retrieve** – the user's question is embedded with the same model and the *k* nearest chunks are fetched by L2 distance.
-4. **Generate** – the retrieved chunks are passed to the generator, which extracts relevant sentences and appends inline citations. If an external LLM key is configured it is called instead.
-5. **Respond** – the UI displays the answer and lists all `[Source: filename, Page: N]` citations.
+### Prerequisites
 
----
+- Python 3.10 or later
+- pip
+- Git
 
-## Tech Stack
-
-| Layer | Library |
-|---|---|
-| PDF parsing | [PyMuPDF](https://pymupdf.readthedocs.io/) (`fitz`) |
-| Text chunking | [LangChain Text Splitters](https://python.langchain.com/) |
-| Embeddings | [sentence-transformers](https://www.sbert.net/) · `all-MiniLM-L6-v2` |
-| Vector index | [FAISS](https://github.com/facebookresearch/faiss) (`faiss-cpu`) |
-| Web server | Python `http.server` (stdlib, no framework) |
-| LLM (optional) | OpenAI API · Groq API |
-
----
-
-## Project Structure
-
-```
-ai-document-intelligence/
-├── app.py                   # Entry point – starts the web server
-├── requirements.txt         # Python dependencies
-├── .env.example             # Template for API-key configuration
-├── .gitignore
-│
-├── src/                     # Core RAG components
-│   ├── pdf_loader.py        # PDF → page list (PyMuPDF)
-│   ├── chunker.py           # Pages → overlapping chunks
-│   ├── embedder.py          # Chunks → 384-dim embeddings
-│   ├── vector_db.py         # FAISS index + metadata store
-│   ├── retriever.py         # Semantic retrieval (top-k search)
-│   ├── generator.py         # Grounded answer generation + citations
-│   ├── rag_pipeline.py      # End-to-end orchestration
-│   └── ui.py                # HTTP server + HTML web interface
-│
-├── evaluation/
-│   ├── evaluate_rag.py      # Reproducible evaluation framework
-│   └── results.json         # Latest evaluation output (git-ignored)
-│
-├── vector_db/               # Persisted FAISS index (git-ignored)
-│   ├── index.faiss
-│   └── metadata.pkl
-│
-└── data/                    # Drop PDFs here for batch ingest (git-ignored)
-```
-
----
-
-## Installation
-
-**Requirements:** Python 3.10 or later, pip.
+### 1. Clone the repository
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/ai-document-intelligence.git
-cd ai-document-intelligence
+git clone https://github.com/anithagummuluri12345/Ai-document-intelligence-RAG-Assistant.git
+cd Ai-document-intelligence-RAG-Assistant
+```
 
-# 2. Create and activate a virtual environment
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
+### 2. Create a virtual environment
 
-# 3. Install dependencies
+**Windows PowerShell**
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation, you can use the environment's Python executable directly instead.
+
+**macOS/Linux**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-> **Note:** The first run downloads the `all-MiniLM-L6-v2` model (~90 MB) from HuggingFace Hub automatically.
+### 4. Configure environment variables
 
----
+If you want to use an optional LLM provider, copy `.env.example` to `.env` and configure the supported API key.
 
-## Environment Variables
+Keep API keys private. Never commit your actual `.env` file to GitHub.
 
-The application works out of the box **without any API key**. To enable a higher-quality LLM for answer generation:
+The exact environment variable names should match those used by the application.
 
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`:
-
-```ini
-# Optional – OpenAI
-OPENAI_API_KEY=sk-...
-
-# Optional – Groq (free tier available)
-GROQ_API_KEY=gsk_...
-```
-
-The `.env` file is listed in `.gitignore` and will never be committed to version control.
-
----
-
-## How to Run
+### 5. Run the application
 
 ```bash
 python app.py
 ```
 
-Open your browser at **http://localhost:8000**.
+Open the local URL printed by the application in your browser. If the server uses port 8000, visit:
 
-1. Click **Choose File** and upload a PDF.
-2. Type your question in the text box and press **Ask**.
-3. The answer appears with inline `[Source: filename, Page: N]` citations.
+```text
+http://localhost:8000
+```
 
----
+### 6. Ask questions about a document
 
-## Example Questions
+1. Upload a PDF through the interface.
+2. Enter a question related to the document.
+3. Review the generated answer.
+4. Check the source and page citations to verify the supporting evidence.
 
-After uploading a research paper on steganographic malware detection:
+## Evaluation
 
-| Question | Expected behaviour |
-|---|---|
-| *"What dataset was used in the experiments?"* | Answer with page citation from the experiments section |
-| *"Why are Deep Neural Networks good candidates to reveal hidden threats?"* | Explanation with citation from the introduction |
-| *"What classifier is proposed to detect steganographic threats in images?"* | DNN-based classifier description with citation |
-| *"What is the main objective of this research paper?"* | Objective statement with citation |
-| *"What is the capital of Australia?"* | `"The provided documents do not contain sufficient information to answer this question."` with no citations |
+The repository includes an evaluation workflow for testing document retrieval and answer behavior.
 
----
-
-## Evaluation Results
-
-The evaluation script (`evaluation/evaluate_rag.py`) runs a fixed 5-question test against the existing vector database and reports four metrics.
-
-> **Important:** These results are from a **5-question evaluation set** on a single research paper. They reflect the performance of the system on that specific document and should not be generalised as accuracy figures for arbitrary documents or question types.
-
-| Metric | Result | Details |
-|---|---|---|
-| **Retrieval Hit Rate** | 75% | 3 / 4 answerable questions retrieved ≥ 1 expected page |
-| **No-Info Accuracy** | 100% | 1 / 1 out-of-document question correctly refused |
-| **Citation Presence Rate** | 100% | 4 / 4 answerable questions returned ≥ 1 citation |
-| **Avg Chunks Retrieved** | 5.0 | Per question, top_k = 5 |
-
-To reproduce:
+Run the evaluation script from the project root:
 
 ```bash
 python evaluation/evaluate_rag.py
 ```
 
+Evaluation results depend on the test dataset, document content, retrieval settings, and selected answer-generation method. Use representative test cases to assess retrieval quality, citation correctness, and the handling of questions that cannot be answered from the source material.
+
+## Current Scope and Limitations
+
+- Retrieval quality depends on the document content, text extraction, embeddings, and search configuration.
+- Answers generated without an external LLM may be extractive rather than fully synthesized.
+- Scanned or image-heavy PDFs may require OCR support.
+- The application should be treated as a local development project unless authentication, access controls, and deployment security have been implemented and tested.
+
+## Potential Improvements
+
+- Multi-document collections and isolated document sessions.
+- Hybrid keyword and semantic retrieval.
+- Cross-encoder reranking for improved retrieval relevance.
+- More comprehensive RAG evaluation datasets and automated regression tests.
+- Streaming responses and persistent chat history.
+- Docker-based deployment and automated testing.
+- Support for additional document formats.
+- Tool-calling workflows for more advanced document analysis.
+
+## Learning Objectives
+
+This project provides practical exposure to:
+
+- Retrieval-Augmented Generation (RAG).
+- Embedding models and vector similarity search.
+- Document ingestion and text preprocessing.
+- Grounded LLM response generation.
+- Source attribution and evaluation of AI applications.
+- Python application development and API integration.
+
+## Author
+
+**Anitha Gummuluri**
+
+Computer Science Engineering Student | AI Engineering | Full-Stack Development
+
+- GitHub: [anithagummuluri12345](https://github.com/anithagummuluri12345)
+
 ---
 
-## Limitations
-
-- **Single-document focus per session** – the vector index accumulates chunks from every uploaded PDF. For isolated per-document queries, clear and re-ingest.
-- **Deterministic fallback quality** – without an LLM API key, answers are extractive (exact sentences from chunks) rather than synthesised prose.
-- **Retrieval hit rate** – semantic similarity may miss the exact page for abstract or broad questions whose wording differs significantly from the document text.
-- **No authentication** – the web server has no user accounts or access control; intended for local use only.
-- **English-optimised** – the embedding model and stopword list are tuned for English text.
-
----
-
-## Future Improvements
-
-- [ ] Per-document index isolation (query only a selected document)
-- [ ] Re-ranking with a cross-encoder for higher retrieval precision
-- [ ] Streaming answer display in the UI
-- [ ] Multi-document comparison queries
-- [ ] Docker containerisation for one-command deployment
-- [ ] Support for additional file formats (DOCX, TXT, HTML)
-- [ ] User authentication and multi-user session management
-
----
-
-## License
-
-This project is released under the [MIT License](LICENSE).
-
+_This project is intended for learning and experimentation with AI-powered document intelligence. See the repository's license and dependency licenses for applicable usage terms._
