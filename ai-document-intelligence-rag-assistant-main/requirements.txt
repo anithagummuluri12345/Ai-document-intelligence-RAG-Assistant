@@ -1,0 +1,22 @@
+# AI Document Intelligence & RAG Assistant – Python dependencies
+# Install with: pip install -r requirements.txt
+
+# ── PDF parsing ───────────────────────────────────────────────────────────────
+pymupdf>=1.24.0            # fitz – PDF text extraction
+
+# ── Text chunking ─────────────────────────────────────────────────────────────
+langchain-text-splitters>=0.2.0  # RecursiveCharacterTextSplitter
+
+# ── Embeddings ────────────────────────────────────────────────────────────────
+sentence-transformers>=3.0.0     # all-MiniLM-L6-v2 (384-dim)
+numpy>=1.26.0
+
+# ── Vector search ─────────────────────────────────────────────────────────────
+faiss-cpu>=1.8.0
+
+# ── Optional LLM integration (no key needed – deterministic fallback used) ────
+requests>=2.31.0           # HTTP client for OpenAI / Groq API calls
+python-dotenv>=1.0.0       # Load .env credentials
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+torch>=2.0.0               # Required by sentence-transformers

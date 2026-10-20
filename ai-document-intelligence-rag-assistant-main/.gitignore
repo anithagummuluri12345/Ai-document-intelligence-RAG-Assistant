@@ -1,0 +1,41 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# .env is intentionally listed above – never commit API keys
+*.key
+*.secret
+
+# ── Data & Vector database (runtime artefacts, not source code) ────────────────
+vector_db/*
+!vector_db/.gitkeep
+data/*
+!data/.gitkeep
+
+# ── Uploaded PDFs (user documents – not part of the codebase) ─────────────────
+*.pdf
+
+# ── Evaluation outputs ────────────────────────────────────────────────────────
+evaluation/results.json
+
+# ── Screenshots / media ───────────────────────────────────────────────────────
+screenshots/*
+!screenshots/.gitkeep
+
+# ── IDE & OS files ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
